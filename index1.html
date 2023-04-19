@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="index1.css" />
+    <title>Purchase Page</title>
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary" id="navbar">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Products</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="#">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="#" aria-current="page">
+                Contact
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="#">About</a>
+            </li>
+          </ul>
+          <form class="d-flex" role="search" action="signin.html">
+            <button class="btn btn-outline-success" type="submit">
+              Sign In
+            </button>
+          </form>
+        </div>
+      </div>
+    </nav>
+    <div class="vending-machine">
+      <div class="display">
+        <p class="display-text">Select an item:</p>
+      </div>
+      <div class="item-container">
+        <div id="product-container"></div>
+      </div>
+    </div>
+    <div class="coin-container">
+      <p class="coin-label">Insert Coins:</p>
+      <button class="coin-btn" data-value="1.00">1.00</button>
+      <button class="coin-btn" data-value="2.00">2.00</button>
+      <button class="coin-btn" data-value="5.00">5.00</button>
+      <button class="coin-btn" data-value="10.0">10.0</button>
+    </div>
+    <div class="change-container">
+      <p class="change-label">Change:</p>
+      <p class="change-amount">0.00</p>
+      <button class="change-btn">Take Change</button>
+    </div>
+    <div class="checkout-container">
+      <button class="checkout-btn" onclick="showPopup()">Checkout</button>
+    </div>
+    <div class="popup-background" id="popup-background">
+      <div class="popup-container" id="popup-container">
+        <h2 class="popup-header">Thanks</h2>
+        <p class="popup-message">For purchasing</p>
+        <p class="popup-product-name"></p>
+        <p class="popup-product-price"></p>
+        <button class="popup-close" onclick="returnPage()">Close</button>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    let purchasedProducts = [];
+
+    fetch("http://localhost:8080/api/products")
+      .then((response) => response.json())
+      .then((data) => {
+        const productContainer = document.getElementById("product-container");
+
+        data.forEach((product) => {
+          const itemDiv = document.createElement("div");
+          itemDiv.classList.add("item");
+
+          const itemImg = document.createElement("img");
+          itemImg.src = product.image;
+          itemImg.alt = product.name;
+          itemImg.style.width = "180px";
+          itemImg.style.height = "180px";
+          itemDiv.appendChild(itemImg);
+
+          const itemName = document.createElement("h3");
+          itemName.textContent = product.name;
+          itemDiv.appendChild(itemName);
+          itemName.className = "item-name";
+
+          const itemPrice = document.createElement("p");
+          itemPrice.textContent = `Price: ${product.price}`;
+          itemPrice.className = "item-price";
+          itemDiv.appendChild(itemPrice);
+
+          const itemQty = document.createElement("p");
+          itemQty.textContent = `Quantity:${product.quantity}`;
+          itemQty.className = "item-quantity";
+          itemDiv.appendChild(itemQty);
+
+          const itemBtn = document.createElement("button");
+          itemBtn.classList.add("item-btn");
+          itemBtn.dataset.price = product.price;
+          itemBtn.dataset.name = product.name;
+          itemBtn.textContent = "Buy";
+          itemDiv.appendChild(itemBtn);
+
+          itemBtn.addEventListener("click", () => {
+            const price = parseFloat(itemBtn.getAttribute("data-price"));
+            const name = itemBtn.getAttribute("data-name");
+            if (price <= coins && product.quantity > 0) {
+              total += price;
+              coins -= price;
+              product.quantity--;
+              updateDisplay();
+              itemQty.textContent = `Quantity: ${product.quantity}`;
+              if (!purchasedProducts.includes(name)) {
+                purchasedProducts.push(name);
+              }
+            } else if (product.quantity === 0) {
+              itemBtn.innerHTML = "Sold Out";
+              itemBtn.style.cursor = "none";
+              itemBtn.style.backgroundColor = "#c82333";
+            } else {
+              alert("Not enough money!");
+            }
+          });
+
+          productContainer.appendChild(itemDiv);
+        });
+      })
+      .catch((error) => console.error(error));
+
+    let total = 0;
+    let coins = 0;
+
+    const coinBtns = document.querySelectorAll(".coin-btn");
+
+    coinBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const value = parseFloat(btn.getAttribute("data-value"));
+        coins += value;
+        updateDisplay();
+      });
+    });
+
+    const changeBtn = document.querySelector(".change-btn");
+
+    changeBtn.addEventListener("click", () => {
+      coins = 0;
+      total = 0;
+      updateDisplay();
+    });
+
+    function updateDisplay() {
+      const displayText = document.querySelector(".display-text");
+      displayText.textContent = `Total: ${total.toFixed(2)}`;
+
+      let purchasedItemsTotal = 0;
+      const purchasedItems = document.querySelectorAll(".item-purchased");
+      purchasedItems.forEach((item) => {
+        purchasedItemsTotal += parseFloat(item.getAttribute("data-price"));
+      });
+
+      const changeDue = (coins - purchasedItemsTotal).toFixed(2);
+      const changeAmount = document.querySelector(".change-amount");
+      changeAmount.textContent = `Balance: ${changeDue}`;
+    }
+
+    function showPopup() {
+      const popup = document.getElementById("popup-background");
+      popup.style.display = "flex";
+
+      const popupProductName = document.querySelector(".popup-product-name");
+      if (popupProductName) {
+        popupProductName.innerHTML = "";
+
+        purchasedProducts.forEach((product) => {
+          const productNameElement = document.createElement("p");
+          productNameElement.textContent = product;
+          popupProductName.appendChild(productNameElement);
+        });
+
+        const popupproductprice = document.querySelector(
+          ".popup-product-price"
+        );
+        const productPriceElement = document.createElement("p");
+        const displayText = document.querySelector(".display-text");
+        const total = displayText.textContent;
+        productPriceElement.textContent = total;
+        popupproductprice.appendChild(productPriceElement);
+      }
+    }
+
+    function hidePopup() {
+      document.getElementById("popup-background").style.display = "none";
+    }
+
+    function returnPage() {
+      window.location.href = "index.html";
+    }
+  </script>
+</html>
