@@ -1,2 +1,2 @@
 # VendingMachine
-This repository is for Complete code of Web Vending Machine.
+This repository is consist Complete code of Web Vending Machine.
